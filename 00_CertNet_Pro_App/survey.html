@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CertNet Pro | Levantamiento de Red LAN (Site Survey)</title>
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="CertNet Pro">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="assets/icons/icon-192.png">
+    <!-- Tailwind CSS para utilidades rápidas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuración de Tailwind: usa estrategia 'class' para dark mode
+         Esto evita que las clases dark: se activen por preferencia del OS (media query)
+         ya que CertNet Pro usa body.dark-mode como clase de toggle manual. -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
+    <!-- Google Fonts: Inter y Outfit para estética ultra-premium -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Estilos heredados de CertNet Pro -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <!-- Estilos personalizados para árbol jerárquico y Site Survey -->
+    <link rel="stylesheet" href="assets/css/survey.css">
+</head>
+<body class="antialiased">
+
+    <div class="app-shell">
+        <!-- Sidebar principal de navegación (Heredado de CertNet Pro) -->
+        <aside id="app-sidebar" class="app-sidebar no-print" aria-label="Navegación principal">
+            <div class="sidebar-brand">
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[#10b981]">CertNet Pro</p>
+                <h1 class="mt-1 text-xl font-black leading-tight">Plataforma Profesional de Certificación LAN</h1>
+                <p class="mt-2 text-xs leading-5 text-slate-400">Ingeniería, medición y documentación de puntos de red.</p>
+            </div>
+            <nav class="mt-5 space-y-5" aria-label="Secciones de la aplicación">
+                <div class="space-y-2">
+                    <p class="nav-label">Aplicación</p>
+                    <a href="index.html?page=manual" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">▦</span>
+                        <span>Manual técnico</span>
+                    </a>
+                    <a href="index.html?page=certification" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">✓</span>
+                        <span>Generar certificado</span>
+                    </a>
+                    <a href="survey.html" class="nav-item active">
+                        <span class="nav-icon" aria-hidden="true">📋</span>
+                        <span>Site Survey (Levantamiento)</span>
+                    </a>
+                </div>
+            </nav>
+            <div class="sidebar-tools">
+                <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">
+                    <span aria-hidden="true">◐</span>
+                    <span id="theme-text">Modo oscuro</span>
+                </button>
+                <div class="sidebar-status">
+                    <strong>Normativas Levantamiento</strong>
+                    <span>ANSI/TIA-568.2-D · TIA-569-E · TIA-606-D · TIA-607-E · ASHRAE</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Overlay para menú móvil -->
+        <div id="sidebar-overlay" class="sidebar-overlay no-print" aria-hidden="true"></div>
+
+        <div class="app-main">
+            <!-- Barra Superior (Topbar) -->
+            <header class="app-topbar no-print">
+                <button id="sidebar-toggle" class="mobile-menu-button" type="button" aria-controls="app-sidebar" aria-expanded="false">☰</button>
+                <div>
+                    <p id="section-kicker" class="text-xs font-black uppercase tracking-[0.22em] text-[#2563eb]">Módulo de Arquitectura de Redes</p>
+                    <h2 id="section-title" class="mt-1 text-xl font-black text-slate-950 md:text-2xl">Site Survey & Diseño Normativo LAN</h2>
+                </div>
+                <!-- Métricas generales en tiempo real -->
+                <div class="topbar-metrics" id="survey-metrics-bar">
+                    <span><strong id="metric-floors">0</strong> Pisos</span>
+                    <span><strong id="metric-trs">0</strong> TRs</span>
+                    <span><strong id="metric-racks">0</strong> Racks</span>
+                    <span><strong id="metric-nodes">0</strong> Puntos</span>
+                </div>
+            </header>
+
+            <main id="app-content" class="app-content">
+                <!-- NOTIFICACIONES TOASTER -->
+                <div id="survey-toast" class="hidden fixed top-4 right-4 z-50 rounded-2xl border bg-white p-4 shadow-2xl transition-all duration-300 transform translate-y-2 opacity-0 flex items-center gap-3">
+                    <div id="toast-icon" class="text-2xl"></div>
+                    <div>
+                        <p id="toast-title" class="font-bold text-sm text-slate-900"></p>
+                        <p id="toast-message" class="text-xs text-slate-600 mt-0.5"></p>
+                    </div>
+                </div>
+
+                <!-- 1. PANTALLA DE SELECCIÓN DE MODALIDAD (INICIO) -->
+                <section id="mode-selection" class="py-6 md:py-10 animate-fade-in">
+                    <div class="max-w-4xl mx-auto text-center">
+                        <p class="text-sm font-black uppercase tracking-[0.25em] text-[#2563eb]">Paso Inicial</p>
+                        <h2 class="mt-2 text-3xl font-black text-[#0f172a] sm:text-4xl">Seleccione la Modalidad de Levantamiento</h2>
+                        <p class="mt-3 text-slate-600 text-sm max-w-xl mx-auto">
+                            CertNet Pro adapta los campos técnicos y las reglas de diseño normativo según el estado y naturaleza de su proyecto de red.
+                        </p>
+                    </div>
+
+                    <div class="mt-10 grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
+                        <!-- Tarjeta Opción A: Greenfield -->
+                        <div class="soft-card p-6 md:p-8 flex flex-col justify-between border-t-8 border-[#2563eb] cursor-pointer hover:scale-[1.02] transition-all duration-300 group shadow-lg" id="btn-select-greenfield">
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-black uppercase tracking-[0.15em] text-[#2563eb] bg-blue-50 px-3 py-1 rounded-full">Modalidad A</span>
+                                    <span class="text-3xl transition-transform group-hover:scale-125 duration-300">🌱</span>
+                                </div>
+                                <h3 class="mt-4 text-2xl font-black text-[#0f172a]">Proyecto Desde Cero</h3>
+                                <p class="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">(Greenfield - Edificación Nueva)</p>
+                                <p class="mt-4 text-sm leading-6 text-slate-600">
+                                    Diseño optimizado para nuevas infraestructuras LAN. Enfocado en estimar el cableado, dimensionar espacios y calcular canalizaciones futuras bajo normativa.
+                                </p>
+                                <ul class="mt-6 space-y-2 text-xs text-slate-600 leading-5">
+                                    <li class="flex items-center gap-2">
+                                        <span class="text-emerald-500">✓</span> Holgura automática de crecimiento (+20% de tomas)
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <span class="text-emerald-500">✓</span> Estimación de diámetro de tuberías (Límite 40% de llenado)
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <span class="text-emerald-500">✓</span> Selección de medios propuestos y diseño de espacios
+                                    </li>
+                                </ul>
+                            </div>
+                            <button class="mt-8 w-full rounded-xl bg-[#2563eb] py-3.5 text-center text-sm font-black text-white shadow-md transition group-hover:bg-[#1d4ed8]" type="button">
+                                Iniciar Greenfield
+                            </button>
+                        </div>
+
+                        <!-- Tarjeta Opción B: Brownfield -->
+                        <div class="soft-card p-6 md:p-8 flex flex-col justify-between border-t-8 border-[#10b981] cursor-pointer hover:scale-[1.02] transition-all duration-300 group shadow-lg" id="btn-select-brownfield">
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-black uppercase tracking-[0.15em] text-[#10b981] bg-emerald-50 px-3 py-1 rounded-full">Modalidad B</span>
+                                    <span class="text-3xl transition-transform group-hover:scale-125 duration-300">🏢</span>
+                                </div>
+                                <h3 class="mt-4 text-2xl font-black text-[#0f172a]">Mejora o Modificación</h3>
+                                <p class="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">(Brownfield - Red Existente)</p>
+                                <p class="mt-4 text-sm leading-6 text-slate-600">
+                                    Auditoría integral de la planta física de red existente. Enfocado en identificar cuellos de botella, cables obsoletos, fallos de puesta a tierra y vulnerabilidades físicas.
+                                </p>
+                                <ul class="mt-6 space-y-2 text-xs text-slate-600 leading-5">
+                                    <li class="flex items-center gap-2">
+                                        <span class="text-emerald-500">✓</span> Auditoría del estado actual (Bueno, Degradado, Obsoleto)
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <span class="text-emerald-500">✓</span> Inspección de cables CCA falsificados (Aluminio-Cobre)
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <span class="text-emerald-500">✓</span> Verificación de esquemas de etiquetado y fallos previos NEXT/RL
+                                    </li>
+                                </ul>
+                            </div>
+                            <button class="mt-8 w-full rounded-xl bg-[#10b981] py-3.5 text-center text-sm font-black text-white shadow-md transition group-hover:bg-[#059669]" type="button">
+                                Iniciar Brownfield
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Carga de Proyectos (Inicio) -->
+                    <div class="mt-12 p-6 rounded-2xl border border-slate-200 bg-white max-w-4xl mx-auto shadow-sm">
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div>
+                                <h4 class="font-black text-[#0f172a]">¿Ya tiene un levantamiento en proceso?</h4>
+                                <p class="text-xs text-slate-600 mt-1">Cargue su archivo JSON o restaure el último avance guardado localmente.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                <button id="btn-restore-last" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-50 transition shadow-sm" type="button">
+                                    Restaurar Autoguardado
+                                </button>
+                                <button id="btn-load-json-trigger" class="rounded-xl bg-emerald-555 border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-black text-emerald-800 hover:bg-emerald-100 transition shadow-sm" type="button">
+                                    Cargar Proyecto (.json)
+                                </button>
+                                <input id="survey-json-file" class="hidden" type="file" accept="application/json,.json">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. ESPACIO DE TRABAJO PRINCIPAL (FORMULARIO Y JERARQUÍA) -->
+                <section id="survey-workspace" class="hidden py-4 animate-fade-in">
+                    <!-- Banner de Modalidad Activa -->
+                    <div class="mb-6 rounded-2xl border p-4 flex flex-col sm:flex-row items-center justify-between gap-3" id="active-mode-banner">
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl" id="active-mode-emoji">🌱</span>
+                            <div>
+                                <p class="text-xs font-black uppercase tracking-wider text-slate-400">Modalidad Activa</p>
+                                <h3 class="text-lg font-black text-slate-900" id="active-mode-title">Proyecto Desde Cero (Greenfield)</h3>
+                            </div>
+                        </div>
+                        <button id="btn-change-mode" class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-black text-red-800 hover:bg-red-100 transition shadow-sm no-print" type="button">
+                            Reiniciar / Cambiar Modo
+                        </button>
+                    </div>
+
+                    <!-- Layout de Dos Columnas: Formulario vs. Consola Normativa -->
+                    <div class="grid gap-6 lg:grid-cols-[1.45fr_0.55fr] items-start">
+                        <!-- Columna Izquierda: Jerarquía del Site Survey -->
+                        <div class="space-y-6">
+                            <!-- Nivel 1: Sede / Edificio (Estático) -->
+                            <article class="soft-card p-5 md:p-6">
+                                <p class="text-xs font-black uppercase tracking-[0.2em] text-[#2563eb]">Nivel 1: Infraestructura Principal</p>
+                                <h3 class="mt-1 text-2xl font-black text-[#0f172a]">Información General del Sitio</h3>
+                                <p class="text-xs text-slate-500 mt-1 leading-5">Defina los datos generales de la sede para la portada de la documentación y referencias geográficas.</p>
+                                
+                                <div class="mt-5 grid gap-4 md:grid-cols-3">
+                                    <label class="text-xs font-bold text-slate-800">
+                                        Nombre de la Sede/Edificio *
+                                        <input type="text" id="building-name" class="mt-1.5 w-full rounded-xl border border-slate-200 p-3 font-normal text-sm" placeholder="Ej. Corporativo Norte" required>
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-800">
+                                        Dirección Física *
+                                        <input type="text" id="building-address" class="mt-1.5 w-full rounded-xl border border-slate-200 p-3 font-normal text-sm" placeholder="Ej. Av. Reforma 123" required>
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-800">
+                                        Uso Predominante *
+                                        <select id="building-use" class="mt-1.5 w-full rounded-xl border border-slate-200 p-3 font-normal text-sm" required>
+                                            <option value="">Seleccione el uso...</option>
+                                            <option value="commercial">Comercial / Oficinas</option>
+                                            <option value="industrial">Industrial / Manufactura</option>
+                                            <option value="datacenter">Centro de Datos dedicado</option>
+                                            <option value="educational">Educativo / Campus</option>
+                                            <option value="healthcare">Salud / Hospitalario</option>
+                                            <option value="residential">Residencial / Mixto</option>
+                                        </select>
+                                    </label>
+                                </div>
+                            </article>
+
+                            <!-- Nivel 1.5: Documentación Ejecutiva -->
+                            <article class="soft-card p-5 md:p-6 mt-6">
+                                <p class="text-xs font-black uppercase tracking-[0.2em] text-[#2563eb]">Nivel 1.5: Documentación Ejecutiva</p>
+                                <h3 class="mt-1 text-2xl font-black text-[#0f172a]">Resumen y Objetivos del Levantamiento</h3>
+                                <p class="text-xs text-slate-500 mt-1 leading-5">Defina el propósito, alcance y principales hallazgos para el informe ejecutivo.</p>
+                                
+                                <div class="mt-5 grid gap-4">
+                                    <label class="text-xs font-bold text-slate-800">
+                                        Propósito del Informe (¿Por qué se hizo el levantamiento?)
+                                        <textarea id="report-purpose" class="mt-1.5 w-full rounded-xl border border-slate-200 p-3 font-normal text-sm" rows="2" placeholder="Ej. Evaluar la infraestructura de red actual para una migración..."></textarea>
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-800">
+                                        Alcance del Trabajo (Áreas, edificios o departamentos incluidos)
+                                        <textarea id="report-scope" class="mt-1.5 w-full rounded-xl border border-slate-200 p-3 font-normal text-sm" rows="2" placeholder="Ej. Planta baja, primer y segundo piso del edificio principal..."></textarea>
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-800">
+                                        Antecedentes (Situación previa o problemas reportados)
+                                        <textarea id="report-background" class="mt-1.5 w-full rounded-xl border border-slate-200 p-3 font-normal text-sm" rows="2" placeholder="Ej. Caídas constantes de red, obsolescencia del cableado categoría 5..."></textarea>
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-800">
+                                        Principales Hallazgos y Conclusiones (Resumen crítico)
+                                        <textarea id="report-findings" class="mt-1.5 w-full rounded-xl border border-slate-200 p-3 font-normal text-sm" rows="2" placeholder="Ej. Se encontraron 30% de los puntos de red sin certificar y switches no administrables..."></textarea>
+                                    </label>
+                                </div>
+                            </article>
+
+                            <!-- Contenedor Dinámico de la Estructura Jerárquica -->
+                            <div id="hierarchy-container" class="space-y-6">
+                                <!-- Aquí se inyectarán dinámicamente los pisos, TRs, Racks y Puntos mediante JS -->
+                            </div>
+
+                            <!-- Botón Principal para Añadir Piso -->
+                            <button id="btn-add-floor" class="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50 py-4 font-black text-[#2563eb] hover:bg-blue-100 hover:border-blue-300 transition-all duration-300 shadow-sm no-print" type="button">
+                                <span>➕</span> Añadir Piso / Departamento
+                            </button>
+
+                            <!-- Nivel 3: Análisis Complementarios (Wi-Fi y Seguridad) -->
+                            <article class="soft-card p-5 md:p-6 mt-6">
+                                <p class="text-xs font-black uppercase tracking-[0.2em] text-[#2563eb]">Nivel 3: Análisis Complementarios</p>
+                                <h3 class="mt-1 text-2xl font-black text-[#0f172a]">Wi-Fi y Seguridad</h3>
+                                <p class="text-xs text-slate-500 mt-1 leading-5">Describa la situación de la red inalámbrica y las medidas de seguridad perimetral.</p>
+                                
+                                <div class="mt-5 grid gap-4">
+                                    <label class="text-xs font-bold text-slate-800">
+                                        Análisis de Red Inalámbrica (Wi-Fi)
+                                        <textarea id="report-wifi" class="mt-1.5 w-full rounded-xl border border-slate-200 p-3 font-normal text-sm" rows="3" placeholder="Ej. Se encontraron 5 Access Points con cobertura deficiente en zonas de reuniones..."></textarea>
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-800">
+                                        Seguridad Física y Lógica
+                                        <textarea id="report-security" class="mt-1.5 w-full rounded-xl border border-slate-200 p-3 font-normal text-sm" rows="3" placeholder="Ej. Ausencia de firewall perimetral, cuartos de equipos sin cerradura..."></textarea>
+                                    </label>
+                                </div>
+                            </article>
+                        </div>
+
+                        <!-- Columna Derecha: Widget de Análisis Normativo en Tiempo Real -->
+                        <div class="space-y-6 lg:sticky lg:top-24 no-print">
+                            <!-- Acciones Rápidas del Proyecto -->
+                            <article class="soft-card p-5">
+                                <h3 class="text-lg font-black text-slate-900">Acciones del Proyecto</h3>
+                                <p class="text-xs text-slate-500 mt-1 leading-5">Gestione y exporte la información recopilada en sitio.</p>
+                                
+                                <div class="mt-4 grid gap-3">
+                                    <button id="btn-install-app" class="hidden w-full rounded-xl border border-blue-200 bg-white py-3 text-center text-sm font-black text-blue-800 shadow-sm transition hover:bg-blue-50" type="button">
+                                        Instalar como app Android
+                                    </button>
+                                    <button id="btn-generate-pdf" class="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 py-3.5 text-center text-sm font-black text-white shadow-md hover:from-emerald-700 hover:to-teal-600 transition" type="button">
+                                        📄 Generar Reporte PDF
+                                    </button>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <button id="btn-save-json" class="rounded-xl border border-blue-200 bg-blue-50 py-3 text-center text-xs font-black text-blue-800 hover:bg-blue-100 transition shadow-sm" type="button">
+                                            💾 Guardar (.json)
+                                        </button>
+                                        <button id="btn-load-json" class="rounded-xl border border-slate-200 bg-slate-50 py-3 text-center text-xs font-black text-slate-700 hover:bg-slate-100 transition shadow-sm" type="button">
+                                            📂 Cargar (.json)
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between text-xs text-slate-400">
+                                    <span>Autoguardado Local:</span>
+                                    <span id="autosave-status" class="font-semibold text-emerald-600">Activo ✓</span>
+                                </div>
+                            </article>
+
+                            <!-- Widget Normativo TIA/ISO -->
+                            <article class="soft-card p-5 border-l-4 border-blue-500 bg-blue-50/50" id="normative-analysis-panel">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-lg font-black text-[#0f172a]">Análisis Normativo</h3>
+                                    <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-[#2563eb] uppercase">TIA/EIA</span>
+                                </div>
+                                <p class="text-xs text-slate-600 mt-1 leading-5">Validación continua de su infraestructura en base a normas de telecomunicaciones.</p>
+
+                                <!-- Resultados de Análisis Greenfield / Brownfield -->
+                                <div id="analysis-results-container" class="mt-5 space-y-4">
+                                    <!-- Aquí se inyectarán las advertencias, cálculos de tubería, holgura, etc. de forma dinámica -->
+                                    <div class="text-center py-6 text-slate-400 text-xs">
+                                        <p>Ingrese información en el formulario para iniciar la auditoría automática.</p>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <!-- Widget de Sugerencias de Proyecto (Solo Brownfield) -->
+                            <article class="soft-card p-5 border-l-4 border-emerald-500 bg-emerald-50/20 hidden" id="suggestions-panel">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-lg font-black text-[#0f172a]">Propuesta de Proyecto</h3>
+                                    <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-[#10b981] uppercase">Sugerido</span>
+                                </div>
+                                <p class="text-xs text-slate-600 mt-1 leading-5">Materiales y equipamiento recomendados para la mejora y reemplazo de lo detectado.</p>
+                                
+                                <div id="suggestions-container" class="mt-5 space-y-4">
+                                    <!-- Se inyectarán dinámicamente según la auditoría -->
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. DETALLE DE INFORME O PLANTILLA PDF (OCULTO EN LA PANTALLA) -->
+<section id="pdf-report-template" class="hidden">
+    <style>
+        #pdf-report-template {
+            --primary-color: #1a365d;
+            --secondary-color: #2b6cb0;
+            --text-color: #2d3748;
+            --bg-light: #f7fafc;
+            --border-color: #e2e8f0;
+            --danger-color: #e53e3e;
+            --warning-color: #dd6b20;
+            --success-color: #38a169;
+            background: #ffffff;
+            color: var(--text-color);
+            width: 760px;
+            max-width: 760px;
+            margin: 0;
+            padding: 0;
+        }
+        #pdf-report-template.pdf-rendering {
+            display: block !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: visible;
+        }
+        .rpt-container {
+            width: 760px;
+            max-width: 760px;
+            margin: 0;
+            background: #ffffff;
+            padding: 24px 28px 30px 28px;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11px;
+            line-height: 1.42;
+            color: var(--text-color);
+            overflow: visible;
+        }
+        .rpt-container header { border-bottom: 2px solid var(--primary-color); padding-bottom: 12px; margin-bottom: 16px; break-inside: avoid; page-break-inside: avoid; }
+        .rpt-container .logo-area { display: flex; justify-content: space-between; align-items: center; }
+        .rpt-container .company-title { color: var(--primary-color); font-size: 17px; font-weight: bold; text-transform: uppercase; margin: 0; }
+        .rpt-container .report-subtitle { color: #718096; font-size: 10px; margin: 3px 0 0 0; }
+        .rpt-container h1 { color: var(--primary-color); font-size: 21px; line-height: 1.15; margin: 14px 0 8px 0; }
+        .rpt-container h2 { color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin: 18px 0 9px 0; font-size: 16px; line-height: 1.25; break-after: avoid; page-break-after: avoid; }
+        .rpt-container h3 { color: var(--secondary-color); margin: 10px 0 5px 0; font-size: 12px; line-height: 1.25; break-after: avoid; page-break-after: avoid; }
+        .rpt-container p { margin: 0 0 8px 0; overflow-wrap: anywhere; }
+        .rpt-container .meta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin-bottom: 12px; background: var(--bg-light); padding: 12px; border-radius: 6px; border-left: 4px solid var(--secondary-color); break-inside: avoid; page-break-inside: avoid; }
+        .rpt-container .meta-item span { display: block; font-size: 8.5px; color: #718096; text-transform: uppercase; }
+        .rpt-container .meta-item strong { font-size: 10.5px; color: var(--primary-color); overflow-wrap: anywhere; }
+        .rpt-container .metrics-badge-container { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
+        .rpt-container .rpt-badge { background: #e2e8f0; padding: 5px 9px; border-radius: 16px; font-size: 9.5px; font-weight: 700; max-width: 100%; overflow-wrap: anywhere; }
+        .rpt-container table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 8.6px; table-layout: fixed; break-inside: auto; page-break-inside: auto; }
+        .rpt-container th { background-color: var(--primary-color); color: white; text-align: left; padding: 6px; overflow-wrap: anywhere; }
+        .rpt-container td { padding: 6px; border-bottom: 1px solid var(--border-color); vertical-align: top; overflow-wrap: anywhere; word-break: break-word; }
+        .rpt-container tr { break-inside: avoid; page-break-inside: avoid; }
+        .rpt-container tr:nth-child(even) { background-color: var(--bg-light); }
+        .rpt-container .alert-box { padding: 10px; margin: 10px 0; border-radius: 6px; border-left: 4px solid; break-inside: avoid; page-break-inside: avoid; }
+        .rpt-container .alert-box.alta { background-color: #fff5f5; border-color: var(--danger-color); color: #9b2c2c; }
+        .rpt-container .alert-box.media { background-color: #fffaf0; border-color: var(--warning-color); color: #9c4221; }
+        .rpt-container .priority-tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; color: white; margin-bottom: 5px; }
+        .rpt-container .priority-tag.alta { background-color: var(--danger-color); }
+        .rpt-container .priority-tag.media { background-color: var(--warning-color); }
+        .rpt-container .note { background-color: #ebf8ff; border-left: 4px solid var(--secondary-color); padding: 10px; margin: 12px 0; border-radius: 4px; font-style: italic; break-inside: avoid; page-break-inside: avoid; }
+        .rpt-container ul { padding-left: 15px; margin: 0 0 8px 0; }
+        .rpt-container li { margin-bottom: 4px; overflow-wrap: anywhere; }
+        .rpt-container .topology-container { background-color: #2d3748; color: #a0aec0; font-family: 'Courier New', Courier, monospace; padding: 10px; border-radius: 6px; white-space: pre-wrap; overflow: visible; font-size: 7.4px; line-height: 1.18; word-break: break-word; }
+        .rpt-container .topology-keyword { color: #f6e05e; }
+        .rpt-container .topology-alert { color: #fc8181; }
+        .rpt-container footer { margin-top: 5px; border-top: 1px solid var(--border-color); padding-top: 8px; text-align: center; font-size: 8.5px; color: #a0aec0; }
+        .pdf-page-break { display: block; height: 0; margin: 0; padding: 0; break-before: page; page-break-before: always; }
+    </style>
+    <div class="rpt-container">
+        <header>
+            <div class="logo-area">
+                <div>
+                    <div class="company-title">CertNet Pro</div>
+                    <div class="report-subtitle">Relerom Systems Consulting</div>
+                </div>
+                <div>
+                    <span class="rpt-badge" style="background: var(--primary-color); color: white;">SITE SURVEY REPORT</span>
+                </div>
+            </div>
+            <h1>Informe Técnico de Levantamiento de Red</h1>
+        </header>
+
+        <section>
+            <div class="meta-grid">
+                <div class="meta-item"><span>Cliente</span><strong id="pdf-building-name"></strong></div>
+                <div class="meta-item"><span>Dirección</span><strong id="pdf-building-address"></strong></div>
+                <div class="meta-item"><span>Uso del Sitio</span><strong id="pdf-building-use"></strong></div>
+                <div class="meta-item"><span>Fecha</span><strong id="pdf-report-date"></strong></div>
+                <div class="meta-item"><span>Inspector</span><strong>Ing. Certificador CertNet Pro</strong></div>
+                <div class="meta-item"><span>Norma Base</span><strong>ANSI/TIA-568.2-D / 569-E</strong></div>
+            </div>
+
+            <div class="metrics-badge-container">
+                <div class="rpt-badge">🔹 Modalidad: <span id="pdf-survey-mode"></span></div>
+                <div class="rpt-badge">🔹 Pisos: <span id="pdf-count-floors">0</span></div>
+                <div class="rpt-badge">🔹 Cuartos TR/ER: <span id="pdf-count-trs">0</span></div>
+                <div class="rpt-badge">🔹 Racks: <span id="pdf-count-racks">0</span></div>
+                <div class="rpt-badge">🔹 Nodos de Red: <span id="pdf-count-nodes">0</span></div>
+            </div>
+        </section>
+
+        <h2>1. Resumen Ejecutivo</h2>
+        <h3>1.1. Propósito del Informe</h3>
+        <p id="pdf-s1-purpose"></p>
+        
+        <h3>1.2. Alcance del Trabajo</h3>
+        <p id="pdf-s1-scope"></p>
+
+        <h3>1.3. Principales Hallazgos y Conclusiones</h3>
+        <p id="pdf-s1-findings"></p>
+
+        <div class="pdf-page-break"></div>
+
+        <h2>2. Introducción y Objetivos</h2>
+        <h3>2.1. Antecedentes</h3>
+        <p id="pdf-s2-background"></p>
+
+        <h3>2.2. Objetivo General</h3>
+        <p>Proporcionar una radiografía técnica precisa de la Capa Física (Capa 1) y Lógica Básica (Capa 2/3) de la red, para respaldar futuras decisiones de inversión, mantenimiento y modernización.</p>
+
+        <h3>2.3. Objetivos Específicos</h3>
+        <ul>
+            <li>Inventariar los cuartos de telecomunicaciones (TR/ER) y evaluar su acondicionamiento.</li>
+            <li>Evaluar la capacidad y estado del sistema de cableado estructurado.</li>
+            <li>Identificar cuellos de botella e incumplimientos de las normativas vigentes TIA/EIA.</li>
+        </ul>
+
+        <h2>3. Metodología de Levantamiento</h2>
+        <h3>3.1. Herramientas y Software Utilizados</h3>
+        <p>Para la captura y análisis de la información se utilizó el sistema <strong>CertNet Pro v2.0</strong>, plataforma de levantamiento digital validada contra normativas ANSI/TIA. En el sitio se emplearon técnicas de inspección visual, medición de parámetros de entorno y herramientas de diagnóstico de cableado UTP/FO para auditar la calidad de los enlaces (NEXT, FEXT, Attenuation).</p>
+
+        <h3>3.2. Proceso de Recolección de Datos</h3>
+        <p>El levantamiento se desarrolló mediante un recorrido estructurado (<em>Site Walk</em>) en modo <strong>Top-Down</strong>, documentando la ubicación espacial (Edificio &rarr; Piso &rarr; Cuarto &rarr; Rack &rarr; Panel/Punto) y las características físicas de cada componente, incluyendo el sistema de aterramiento (TMGB), la climatización (HVAC) y la gestión de canalizaciones.</p>
+
+        <div class="pdf-page-break"></div>
+
+        <h2>4. Diagnóstico de la Infraestructura Física (Capa 1)</h2>
+        <p>Esta sección detalla la topología física, evaluando los espacios y vías de telecomunicaciones según la norma <strong>ANSI/TIA-569-E</strong> y la infraestructura de racks según <strong>EIA/ECA-310-E</strong>.</p>
+
+        <table>
+            <colgroup>
+                <col style="width: 14%;">
+                <col style="width: 20%;">
+                <col style="width: 24%;">
+                <col style="width: 20%;">
+                <col style="width: 22%;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Ubicación (Piso/Área)</th>
+                    <th>Cuarto TR/ER (HVAC)</th>
+                    <th>Rack (Tierra)</th>
+                    <th>Puntos & Cableado</th>
+                    <th>Métricas y Equipamiento</th>
+                </tr>
+            </thead>
+            <tbody id="pdf-table-body">
+                <!-- Inyectado por JS -->
+            </tbody>
+        </table>
+
+        <div class="pdf-page-break"></div>
+
+        <h2>5. Diagnóstico de la Infraestructura Lógica (Capas 2 y 3)</h2>
+        <h3>5.1. Equipos de Comunicación Activos</h3>
+        
+        <div id="pdf-equipments-results">
+            <!-- Inyectado por JS -->
+        </div>
+
+        <h3>5.2. Topología Lógica y Direccionamiento / 5.3. Servicios</h3>
+        <div class="note">
+            <strong>Nota técnica:</strong> Los aspectos detallados de Capa 3, direccionamiento IP estático, VLANs y servicios centrales (DHCP/DNS) requieren un análisis de red lógico dedicado que excede el alcance de este levantamiento físico primario, o se encuentran registrados en la documentación anexa provista por el cliente.
+        </div>
+
+        <h2>6. Análisis de la Red Inalámbrica (Wi-Fi)</h2>
+        <p id="pdf-s6-wifi"></p>
+
+        <h2>7. Evaluación de la Seguridad de la Red</h2>
+        <p id="pdf-s7-security"></p>
+
+        <div class="pdf-page-break"></div>
+
+        <div id="pdf-compliance-summary-block">
+            <h2>8. Resumen de Hallazgos y Análisis de Brechas (Gap Analysis)</h2>
+            <div id="pdf-analysis-results">
+                <!-- Inyectado por JS -->
+            </div>
+        </div>
+
+        <div id="pdf-suggestions-block" class="pdf-page-break">
+            <h2>9. Recomendaciones y Propuesta de Mejora</h2>
+            <div id="pdf-suggestions-results">
+                <!-- Inyectado por JS -->
+            </div>
+        </div>
+
+        <div class="pdf-page-break"></div>
+
+        <h2>10. Anexos</h2>
+        <h3>Anexo A: Diagrama de Topología Física</h3>
+        <div class="topology-container">
+<span class="topology-keyword">[ ENTRADA PROVEEDOR (ISP) ]</span>
+             │
+             ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ <span class="topology-keyword">PISO 2 - CUARTO TR1</span> (Con Climatización HVAC y Rack Aterrizado)         │
+│                                                                        │
+│  ┌───────────────────────┐                                             │
+│  │ Router Cisco ISR 4331 │ (1U - Operativo)                            │
+│  └───────────┬───────────┘                                             │
+│              ▼                                                         │
+│  ┌───────────────────────┐                                             │
+│  │ Switch UniFi Pro 24   │ (1U - 24 Puertos Gigabit PoE+)              │
+│  └───────────┬───────────┘                                             │
+│              ▼                                                         │
+│  ┌───────────────────────┐                                             │
+│  │ Patch Panel Panduit   │ (1U - Cat 6A - Operativo)                   │
+│  └───────────┬───────────┘                                             │
+│              └─► [ 24 Nodos Usuario ] <span class="topology-alert">⚠️ Faltan Etiquetas (TIA-606-D)</span>  │
+└──────────────────────│─────────────────────────────────────────────────┘
+                       │ (Enlace Backbone)
+                       ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ <span class="topology-keyword">PISO 1 - CUARTO TR1</span> (<span class="topology-alert">⚠️ SIN CLIMATIZACIÓN</span> / <span class="topology-alert">⚠️ RACK NO ATERRIZADO</span>)   │
+│                                                                        │
+│  ┌───────────────────────┐                                             │
+│  │ Switch UniFi Pro 24   │ (1U - 24 Puertos Gigabit PoE+ - Operativo)  │
+│  └───────────┬───────────┘                                             │
+│              │                                                         │
+│              │ <span class="topology-alert">⚠️ BRECHA: Sin Patch Panel (Llega directo al Switch)</span>    │
+│              │                                                         │
+│              └─► [ 24 Nodos Usuario ] <span class="topology-alert">⚠️ Faltan Etiquetas (TIA-606-D)</span>  │
+└────────────────────────────────────────────────────────────────────────┘</div>
+
+        <h3>Anexo B & E: Documentación Externa</h3>
+        <ul>
+            <li><strong>Anexo B:</strong> Diagrama de Topología Lógica de la Red (VLANs e IPs) [Adjuntar generado externamente].</li>
+            <li><strong>Anexo E:</strong> Registro Fotográfico (Evidencias de fallas físicas) [Adjuntar evidencias].</li>
+        </ul>
+
+        <footer>
+            <p>© 2026 CertNet Pro | Relerom Systems Consulting - Documento de carácter estrictamente confidencial técnico.</p>
+        </footer>
+    </div>
+</section>
+    <!-- Cargar html2pdf.js desde CDN para generación premium de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+    <!-- Código de comportamiento y lógica interactiva del Site Survey -->
+    <script src="assets/js/survey.js" defer></script>
+    <script>
+        if ("serviceWorker" in navigator && ["https:", "http:"].includes(location.protocol)) {
+            window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js").catch(() => {}));
+        }
+    </script>
+</body>
+</html>
